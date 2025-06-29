@@ -1,6 +1,6 @@
 #[cfg(feature = "keyset-rotation")]
 use node::KeysetRotationServiceServer;
-use std::net::SocketAddr;
+use std::{net::SocketAddr, future::Future};
 use tower::ServiceBuilder;
 use tower_otel::trace;
 use tracing::instrument;
@@ -13,20 +13,21 @@ use sqlx::Postgres;
 use starknet_types::Unit;
 use tonic::{service::LayerExt, transport::Channel};
 
-use crate::{grpc_service::GrpcState, liquidity_sources::LiquiditySources};
+use crate::{app_state::AppState, liquidity_sources::LiquiditySources};
 
 use super::{Error, env_variables::EnvVariables};
 
+/// Create AppState that can be shared between gRPC and HTTP services
 #[instrument]
-pub async fn launch_tonic_server_task(
+pub async fn create_app_state(
     pg_pool: sqlx::Pool<Postgres>,
     signer_client: SignerClient<trace::Grpc<Channel>>,
     liquidity_sources: LiquiditySources,
-    env_vars: EnvVariables,
-) -> Result<(SocketAddr, impl Future<Output = Result<(), crate::Error>>), super::Error> {
+    quote_ttl: Option<u64>,
+) -> Result<AppState, super::Error> {
     let nuts_settings = super::nuts_settings::nuts_settings();
-    let ttl = env_vars.quote_ttl.unwrap_or(3600);
-    let grpc_state = GrpcState::new(
+    let ttl = quote_ttl.unwrap_or(3600);
+    let app_state = AppState::new(
         pg_pool,
         signer_client,
         nuts_settings,
@@ -36,23 +37,31 @@ pub async fn launch_tonic_server_task(
         },
         liquidity_sources,
     );
-    let address = format!("[::0]:{}", env_vars.grpc_port)
-        .parse()
-        .map_err(Error::InvalidGrpcAddress)?;
 
-    // TODO: take into account past keyset rotations
-    // init node shared
-    grpc_state
+    // Initialize first keysets
+    app_state
         .init_first_keysets(&[Unit::MilliStrk], 0, 32)
         .await?;
+
+    Ok(app_state)
+}
+
+#[instrument]
+pub async fn launch_tonic_server_task(
+    app_state: AppState,
+    grpc_port: u16,
+) -> Result<(SocketAddr, impl Future<Output = Result<(), crate::Error>>), super::Error> {
+    let address = format!("[::0]:{}", grpc_port)
+        .parse()
+        .map_err(Error::InvalidGrpcAddress)?;
 
     // init health reporter service
     let health_service = {
         let (health_reporter, health_service) = tonic_health::server::health_reporter();
-        health_reporter.set_serving::<NodeServer<GrpcState>>().await;
+        health_reporter.set_serving::<NodeServer<AppState>>().await;
         #[cfg(feature = "keyset-rotation")]
         health_reporter
-            .set_serving::<KeysetRotationServiceServer<GrpcState>>()
+            .set_serving::<KeysetRotationServiceServer<AppState>>()
             .await;
 
         health_service
@@ -63,11 +72,11 @@ pub async fn launch_tonic_server_task(
     #[cfg(feature = "keyset-rotation")]
     let keyset_rotation_service = ServiceBuilder::new()
         .layer(optl_layer.clone())
-        .named_layer(KeysetRotationServiceServer::new(grpc_state.clone()));
+        .named_layer(KeysetRotationServiceServer::new(app_state.clone()));
 
     let node_service = ServiceBuilder::new()
         .layer(optl_layer)
-        .named_layer(NodeServer::new(grpc_state.clone()));
+        .named_layer(NodeServer::new(app_state.clone()));
 
     let tonic_future = {
         let mut tonic_server = tonic::transport::Server::builder()

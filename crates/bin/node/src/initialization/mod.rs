@@ -8,7 +8,11 @@ pub use db::connect_to_db_and_run_migrations;
 mod signer_client;
 pub use signer_client::connect_to_signer;
 mod grpc;
-pub use grpc::launch_tonic_server_task;
+pub use grpc::{create_app_state, launch_tonic_server_task};
+#[cfg(feature = "http")]
+mod http;
+#[cfg(feature = "http")]
+pub use http::launch_http_server_task;
 
 use crate::grpc_service::InitKeysetError;
 
@@ -34,5 +38,5 @@ pub enum Error {
     #[error("failed to init first keysets: {0}")]
     InitKeysets(#[from] InitKeysetError),
     #[error("invalid signer uri: {0}")]
-    Uri(#[from] http::uri::InvalidUri),
+    Uri(#[from] tonic::transport::Error),
 }

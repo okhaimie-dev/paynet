@@ -30,21 +30,13 @@ use tracing::instrument;
 use uuid::Uuid;
 
 use crate::{
-    app_state::{NutsSettingsState, QuoteTTLConfigState, SignerClient},
+    app_state::{AppState, NutsSettingsState, QuoteTTLConfigState, SignerClient},
     keyset_cache::KeysetCache,
     methods::Method,
 };
 
-#[derive(Debug, Clone)]
-pub struct GrpcState {
-    pub pg_pool: PgPool,
-    pub signer: SignerClient,
-    pub keyset_cache: KeysetCache,
-    pub nuts: NutsSettingsState,
-    pub quote_ttl: Arc<QuoteTTLConfigState>,
-    pub liquidity_sources: LiquiditySources,
-    pub response_cache: Arc<InMemResponseCache<(Route, u64), CachedResponse>>,
-}
+// Type alias for backwards compatibility - GrpcState is now AppState
+pub type GrpcState = AppState;
 
 #[derive(Debug, thiserror::Error)]
 pub enum InitKeysetError {
@@ -59,23 +51,7 @@ pub enum InitKeysetError {
 }
 
 impl GrpcState {
-    pub fn new(
-        pg_pool: PgPool,
-        signer_client: SignerClient,
-        nuts_settings: NutsSettings<Method, Unit>,
-        quote_ttl: QuoteTTLConfig,
-        liquidity_sources: LiquiditySources,
-    ) -> Self {
-        Self {
-            pg_pool,
-            keyset_cache: Default::default(),
-            nuts: Arc::new(RwLock::new(nuts_settings)),
-            quote_ttl: Arc::new(quote_ttl.into()),
-            signer: signer_client,
-            liquidity_sources,
-            response_cache: Arc::new(InMemResponseCache::new(None)),
-        }
-    }
+    // new() method is now inherited from AppState
 
     pub async fn init_first_keysets(
         &self,
