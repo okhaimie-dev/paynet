@@ -7,7 +7,8 @@ use crate::app_state::SignerClient;
 use super::Error;
 
 pub async fn connect_to_signer(signer_url: String) -> Result<SignerClient, Error> {
-    let channel = Channel::builder(signer_url.parse()?)
+    let endpoint = Channel::from_shared(signer_url).expect("Invalid signer URL");
+    let channel = endpoint
         .connect()
         .await
         .map_err(Error::SignerConnection)?;

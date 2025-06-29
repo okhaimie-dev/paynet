@@ -91,11 +91,13 @@ async fn main() -> Result<(), anyhow::Error> {
             ).await?;
             trace!(name: "grpc-listen", port = grpc_address.port());
 
+            #[cfg(feature = "http")]
             let http_future = launch_http_server_task(
                 app_state,
                 env_variables.http_port,
             );
 
+#[cfg(feature = "http")]
             tokio::select! {
                 grpc_res = grpc_future => match grpc_res {
                     Ok(()) => eprintln!("gRPC task should never return"),
@@ -104,6 +106,18 @@ async fn main() -> Result<(), anyhow::Error> {
                 http_res = http_future => match http_res {
                     Ok(()) => eprintln!("HTTP task should never return"),
                     Err(err) => eprintln!("HTTP task failed: {}", err),
+                },
+                sig = tokio::signal::ctrl_c() => match sig {
+                    Ok(()) => info!("Servers terminated"),
+                    Err(err) => eprintln!("unable to listen for shutdown signal: {}", err)
+                }
+            };
+            
+            #[cfg(not(feature = "http"))]
+            tokio::select! {
+                grpc_res = grpc_future => match grpc_res {
+                    Ok(()) => eprintln!("gRPC task should never return"),
+                    Err(err) => eprintln!("gRPC task failed: {}", err),
                 },
                 sig = tokio::signal::ctrl_c() => match sig {
                     Ok(()) => info!("Servers terminated"),

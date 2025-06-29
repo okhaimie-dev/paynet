@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:cashubtc.github.io)",
+      "Bash(cargo check:*)",
+      "Bash(grep:*)"
+    ],
+    "deny": []
+  }
+}
