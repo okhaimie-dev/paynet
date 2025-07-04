@@ -84,32 +84,35 @@ async fn main() -> Result<(), anyhow::Error> {
     match (cfg!(feature = "grpc"), cfg!(feature = "http")) {
         (true, true) => {
             // Both gRPC and HTTP enabled
-            info!("Starting both gRPC and HTTP servers");
-            let (grpc_address, grpc_future) = launch_tonic_server_task(
-                app_state.clone(),
-                env_variables.grpc_port,
-            ).await?;
-            trace!(name: "grpc-listen", port = grpc_address.port());
+            #[cfg(feature = "http")]
+            {
+                info!("Starting both gRPC and HTTP servers");
+                let (grpc_address, grpc_future) = launch_tonic_server_task(
+                    app_state.clone(),
+                    env_variables.grpc_port,
+                ).await?;
+                trace!(name: "grpc-listen", port = grpc_address.port());
 
-            let http_future = launch_http_server_task(
-                app_state,
-                env_variables.http_port,
-            );
+                let http_future = launch_http_server_task(
+                    app_state,
+                    env_variables.http_port,
+                );
 
-            tokio::select! {
-                grpc_res = grpc_future => match grpc_res {
-                    Ok(()) => eprintln!("gRPC task should never return"),
-                    Err(err) => eprintln!("gRPC task failed: {}", err),
-                },
-                http_res = http_future => match http_res {
-                    Ok(()) => eprintln!("HTTP task should never return"),
-                    Err(err) => eprintln!("HTTP task failed: {}", err),
-                },
-                sig = tokio::signal::ctrl_c() => match sig {
-                    Ok(()) => info!("Servers terminated"),
-                    Err(err) => eprintln!("unable to listen for shutdown signal: {}", err)
-                }
-            };
+                tokio::select! {
+                    grpc_res = grpc_future => match grpc_res {
+                        Ok(()) => eprintln!("gRPC task should never return"),
+                        Err(err) => eprintln!("gRPC task failed: {}", err),
+                    },
+                    http_res = http_future => match http_res {
+                        Ok(()) => eprintln!("HTTP task should never return"),
+                        Err(err) => eprintln!("HTTP task failed: {}", err),
+                    },
+                    sig = tokio::signal::ctrl_c() => match sig {
+                        Ok(()) => info!("Servers terminated"),
+                        Err(err) => eprintln!("unable to listen for shutdown signal: {}", err)
+                    }
+                };
+            }
         }
         (true, false) => {
             // Only gRPC enabled

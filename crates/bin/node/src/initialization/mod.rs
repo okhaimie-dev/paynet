@@ -39,4 +39,6 @@ pub enum Error {
     InitKeysets(#[from] InitKeysetError),
     #[error("invalid signer uri: {0}")]
     Uri(#[from] tonic::transport::Error),
+    #[error("invalid uri format")]
+    InvalidUri,
 }
