@@ -2,7 +2,6 @@ use std::sync::{Arc, atomic::AtomicU64};
 
 use nuts::{
     Amount, QuoteTTLConfig,
-    nut00::{BlindedMessage, Proof, secret::Secret},
     nut01::{self, PublicKey},
     nut02::{self, KeysetId},
     nut06::NutsSettings,
@@ -11,7 +10,6 @@ use nuts::{
 use sqlx::PgPool;
 use starknet_types::Unit;
 use std::str::FromStr;
-use thiserror::Error;
 use tokio::sync::RwLock;
 use tonic::{Status, transport::Channel};
 
@@ -64,7 +62,7 @@ pub struct AppState {
     pub keyset_cache: KeysetCache,
     pub nuts: NutsSettingsState,
     pub quote_ttl: Arc<QuoteTTLConfigState>,
-    pub liquidity_sources: LiquiditySources,
+    pub liquidity_sources: LiquiditySources<Unit>,
     pub response_cache: Arc<InMemResponseCache<(Route, u64), CachedResponse>>,
 }
 
@@ -86,7 +84,7 @@ impl AppState {
         signer_client: SignerClient,
         nuts_settings: NutsSettings<Method, Unit>,
         quote_ttl: QuoteTTLConfig,
-        liquidity_sources: LiquiditySources,
+        liquidity_sources: LiquiditySources<Unit>,
     ) -> Self {
         Self {
             pg_pool,
