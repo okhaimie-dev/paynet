@@ -11,6 +11,8 @@ use tonic::service::LayerExt;
 use crate::app_state::AppState;
 
 use super::Error;
+#[cfg(feature = "tls")]
+use super::read_env_variables;
 
 #[instrument]
 pub async fn launch_tonic_server_task(
@@ -58,13 +60,16 @@ pub async fn launch_tonic_server_task(
         #[cfg(not(feature = "tls"))]
         let future = router.serve(address).map_err(crate::Error::Tonic);
         #[cfg(feature = "tls")]
-        let future = router
-            .serve_with_incoming(init_incoming(
-                address,
-                env_vars.tls_cert_path,
-                env_vars.tls_key_path,
-            )?)
-            .map_err(crate::Error::Tonic);
+        let future = {
+            let env_vars = read_env_variables()?;
+            router
+                .serve_with_incoming(init_incoming(
+                    address,
+                    env_vars.tls_cert_path,
+                    env_vars.tls_key_path,
+                )?)
+                .map_err(crate::Error::Tonic)
+        };
 
         future
     };

@@ -9,7 +9,7 @@ pub async fn launch_rest_server_task(
     app_state: AppState,
     rest_port: u16,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let app = create_http_app(app_state);
+    let app = create_rest_app(app_state);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], rest_port));
     let listener = TcpListener::bind(addr).await?;
@@ -24,8 +24,8 @@ pub async fn launch_rest_server_task(
     Ok(())
 }
 
-fn create_http_app(app_state: AppState) -> Router {
-    http_service::create_router()
+fn create_rest_app(app_state: AppState) -> Router {
+    rest_service::create_router()
         .layer(
             CorsLayer::new()
                 .allow_origin(tower_http::cors::Any)

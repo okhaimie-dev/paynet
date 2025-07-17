@@ -26,16 +26,13 @@ use std::str::FromStr;
 use uuid::Uuid;
 
 #[cfg(feature = "rest")]
-use crate::{app_state::AppState, methods::Method, response_cache::CachedResponse};
+use crate::{app_state::AppState, response_cache::CachedResponse};
 
 #[cfg(feature = "rest")]
 use node::{
     BlindSignature as GrpcBlindSignature, KeysetKeys as GrpcKeysetKeys,
     SwapResponse as GrpcSwapResponse,
 };
-
-#[cfg(feature = "rest")]
-use tracing;
 
 #[cfg(feature = "rest")]
 use starknet_types::Unit;
