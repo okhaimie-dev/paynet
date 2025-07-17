@@ -1,7 +1,8 @@
-#[cfg(all(feature = "mock", feature = "starknet"))]
-compile_error!("Only one of the features 'mock' and 'starknet' can be enabled at the same time");
-#[cfg(not(any(feature = "mock", feature = "starknet")))]
+#[cfg(not(any(feature = "starknet")))]
 compile_error!("At least one liquidity feature should be provided during compilation");
+
+#[cfg(not(any(feature = "grpc", feature = "rest")))]
+compile_error!("At least one API feature should be provided during compilation");
 
 use core::panic;
 use std::time::Duration;
@@ -146,9 +147,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 };
             }
         }
-        (false, false) => {
-            panic!("At least one server feature (grpc or rest) must be enabled");
-        }
+        (false, false) => {} // Can't happen - checked at compile time
     }
 
     Ok(())

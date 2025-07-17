@@ -1,10 +1,15 @@
-use crate::{app_state::AppState, rest_service};
-use axum::Router;
-use std::net::SocketAddr;
-use tokio::net::TcpListener;
-use tower_http::{cors::CorsLayer, trace::TraceLayer};
-use tracing::{info, warn};
+use crate::app_state::AppState;
+#[cfg(feature = "rest")]
+use {
+    crate::rest_service,
+    axum::Router,
+    std::net::SocketAddr,
+    tokio::net::TcpListener,
+    tower_http::{cors::CorsLayer, trace::TraceLayer},
+    tracing::{info, warn},
+};
 
+#[cfg(feature = "rest")]
 pub async fn launch_rest_server_task(
     app_state: AppState,
     rest_port: u16,
@@ -16,14 +21,12 @@ pub async fn launch_rest_server_task(
 
     info!("HTTP REST API server listening on {}", addr);
 
-    axum::serve(listener, app).await.map_err(|e| {
-        warn!("HTTP server error: {}", e);
-        e
-    })?;
+    axum::serve(listener, app).await.map_err(|e| e)?;
 
     Ok(())
 }
 
+#[cfg(feature = "rest")]
 fn create_rest_app(app_state: AppState) -> Router {
     rest_service::create_router()
         .layer(
@@ -40,8 +43,9 @@ fn create_rest_app(app_state: AppState) -> Router {
         .with_state(app_state)
 }
 
+#[cfg(not(feature = "rest"))]
 pub async fn launch_rest_server_task(
-    _app_state: crate::app_state::AppState,
+    _app_state: AppState,
     _rest_port: u16,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // HTTP feature not enabled

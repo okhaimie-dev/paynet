@@ -18,7 +18,7 @@ pub fn read_env_variables() -> Result<EnvVariables, Error> {
         .map_err(Error::ParseInt)?;
     #[cfg(feature = "rest")]
     let rest_port = std::env::var("REST_PORT")
-        .unwrap_or_else(|_| "3339".to_string()) // Default REST port
+        .unwrap_or_else(|_| "80".to_string()) // Default REST port
         .parse()
         .map_err(Error::ParseInt)?;
     let quote_ttl = match std::env::var("QUOTE_TTL") {
@@ -36,6 +36,7 @@ pub fn read_env_variables() -> Result<EnvVariables, Error> {
     Ok(EnvVariables {
         pg_url,
         signer_url,
+        #[cfg(feature = "grpc")]
         grpc_port,
         #[cfg(feature = "rest")]
         rest_port,
