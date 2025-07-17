@@ -5,13 +5,13 @@ use tokio::net::TcpListener;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing::{info, warn};
 
-pub async fn launch_http_server_task(
+pub async fn launch_rest_server_task(
     app_state: AppState,
-    http_port: u16,
+    rest_port: u16,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let app = create_http_app(app_state);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], http_port));
+    let addr = SocketAddr::from(([0, 0, 0, 0], rest_port));
     let listener = TcpListener::bind(addr).await?;
 
     info!("HTTP REST API server listening on {}", addr);
@@ -40,9 +40,9 @@ fn create_http_app(app_state: AppState) -> Router {
         .with_state(app_state)
 }
 
-pub async fn launch_http_server_task(
+pub async fn launch_rest_server_task(
     _app_state: crate::app_state::AppState,
-    _http_port: u16,
+    _rest_port: u16,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // HTTP feature not enabled
     tokio::time::sleep(std::time::Duration::from_secs(u64::MAX)).await;
