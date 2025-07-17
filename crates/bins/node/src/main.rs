@@ -24,6 +24,7 @@ mod liquidity_sources;
 mod logic;
 mod methods;
 mod response_cache;
+mod rest_service;
 mod routes;
 mod utils;
 
